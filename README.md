@@ -21,7 +21,7 @@ An end-to-end Streamlit application that uses multiple specialized AI agents (Co
   - `bug_detection.py`
   - `best_practice.py`
 - `review_manager.py`: Orchestrates agents and builds the final report
-  - Optional CrewAI orchestration with LangChain `ChatOpenAI` if installed
+  - Optional LangChain agents orchestration with `ChatOpenAI`
 
 ### Setup
 1. Python 3.9+
@@ -88,21 +88,21 @@ Open the printed local URL in your browser.
 - The app attempts PDF text extraction via PyMuPDF first, then pdfplumber. For DOC/DOCX it uses `python-docx`.
 - The DeepSeek model used is `deepseek-coder` by default; change in `deepseek_handler.py` if needed.
 - If API returns non-JSON, the client tries relaxed extraction from fenced blocks or brace spans.
-- If `crewai` and `langchain-openai` are installed, the app will try CrewAI-based orchestration automatically. Disable with `USE_CREWAI=false`.
+- If `langchain-openai` is installed, the app will try LangChain-agents-based orchestration automatically. Disable with `USE_LANGCHAIN_AGENTS=false`.
 
 ### Extending
 - Add more agents in `agents/` and wire them in `review_manager.py`.
 - Enhance scoring in `ReviewManager._compute_quality_score` to fit your org.
 - Improve prompts to specialize by language or framework.
 
-### CrewAI mode (optional)
-Set env for OpenAI-compatible usage and enable CrewAI orchestration (default true when deps exist):
+### LangChain agents mode (optional)
+Set env for OpenAI-compatible usage and enable LangChain agents orchestration (default true when deps exist):
 
 ```bash
-export USE_CREWAI=true
-export DEEPSEEK_API_KEY=your_key
-export DEEPSEEK_BASE_URL=https://genailab.tcs.in
-export DEEPSEEK_MODEL=azure_ai/genailab-maas-DeepSeek-V3-0324
+export USE_LANGCHAIN_AGENTS=true
+export API_KEY="sk-..."                                # or DEEPSEEK_API_KEY
+export DEFAULT_BASE_URL=https://genailab.tcs.in         # /v1 auto-added
+export DEFAULT_MODEL=azure_ai/genailab-maas-DeepSeek-V3-0324
 export DEEPSEEK_VERIFY_SSL=false
 ```
 

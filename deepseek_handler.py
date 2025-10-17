@@ -111,14 +111,21 @@ class DeepSeekClient:
         openai_compatible: Optional[bool] = None,
         default_headers: Optional[Dict[str, str]] = None,
     ) -> None:
-        self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
+        # Support both DEEPSEEK_API_KEY and generic API_KEY for convenience
+        self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY") or os.getenv("API_KEY")
         if not self.api_key:
             raise DeepSeekError(
                 "DEEPSEEK_API_KEY is not set. Please export it in your environment."
             )
-        self.model = model or os.getenv("DEEPSEEK_MODEL") or DEEPSEEK_DEFAULT_MODEL
+        # Also support DEFAULT_MODEL
+        self.model = (
+            model or os.getenv("DEEPSEEK_MODEL") or os.getenv("DEFAULT_MODEL") or DEEPSEEK_DEFAULT_MODEL
+        )
 
-        raw_base_url = base_url or os.getenv("DEEPSEEK_BASE_URL") or DEEPSEEK_DEFAULT_BASE_URL
+        # Also support DEFAULT_BASE_URL
+        raw_base_url = (
+            base_url or os.getenv("DEEPSEEK_BASE_URL") or os.getenv("DEFAULT_BASE_URL") or DEEPSEEK_DEFAULT_BASE_URL
+        )
         openai_flag = (
             openai_compatible
             if openai_compatible is not None
