@@ -69,6 +69,31 @@ def _extract_json_relaxed(text: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _parse_bool(value: Optional[str], default: bool) -> bool:
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "t", "yes", "y"}
+
+
+def _normalize_base_url(base_url: str, openai_compatible: bool) -> str:
+    base = base_url.rstrip("/")
+    if openai_compatible and not base.endswith("/v1"):
+        base = base + "/v1"
+    return base
+
+
+def _load_extra_headers_from_env() -> Dict[str, str]:
+    try:
+        raw = os.getenv("DEEPSEEK_EXTRA_HEADERS")
+        if raw:
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                return {str(k): str(v) for k, v in data.items()}
+    except Exception:
+        pass
+    return {}
+
+
 class DeepSeekClient:
     """Minimal DeepSeek Chat Completions client using requests.
 
@@ -78,20 +103,35 @@ class DeepSeekClient:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = DEEPSEEK_DEFAULT_MODEL,
-        base_url: str = DEEPSEEK_DEFAULT_BASE_URL,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
         timeout_seconds: int = 60,
         max_retries: int = 2,
+        verify_ssl: Optional[bool] = None,
+        openai_compatible: Optional[bool] = None,
+        default_headers: Optional[Dict[str, str]] = None,
     ) -> None:
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
         if not self.api_key:
             raise DeepSeekError(
                 "DEEPSEEK_API_KEY is not set. Please export it in your environment."
             )
-        self.model = model
-        self.base_url = base_url.rstrip("/")
-        self.timeout_seconds = timeout_seconds
-        self.max_retries = max_retries
+        self.model = model or os.getenv("DEEPSEEK_MODEL") or DEEPSEEK_DEFAULT_MODEL
+
+        raw_base_url = base_url or os.getenv("DEEPSEEK_BASE_URL") or DEEPSEEK_DEFAULT_BASE_URL
+        openai_flag = (
+            openai_compatible
+            if openai_compatible is not None
+            else _parse_bool(os.getenv("DEEPSEEK_OPENAI_COMPATIBLE"), True)
+        )
+        self.base_url = _normalize_base_url(raw_base_url, openai_flag)
+
+        self.timeout_seconds = int(os.getenv("DEEPSEEK_TIMEOUT_SECONDS", str(timeout_seconds)))
+        self.max_retries = int(os.getenv("DEEPSEEK_MAX_RETRIES", str(max_retries)))
+        self.verify_ssl = (
+            verify_ssl if verify_ssl is not None else _parse_bool(os.getenv("DEEPSEEK_VERIFY_SSL"), True)
+        )
+        self.default_headers = default_headers or _load_extra_headers_from_env()
 
     def chat_complete(
         self,
@@ -113,6 +153,9 @@ class DeepSeekClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+        # Merge default headers from client with any per-call headers
+        if self.default_headers:
+            headers.update(self.default_headers)
         if extra_headers:
             headers.update(extra_headers)
 
@@ -133,7 +176,11 @@ class DeepSeekClient:
         while attempt <= self.max_retries:
             try:
                 resp = requests.post(
-                    url, headers=headers, json=payload, timeout=self.timeout_seconds
+                    url,
+                    headers=headers,
+                    json=payload,
+                    timeout=self.timeout_seconds,
+                    verify=self.verify_ssl,
                 )
                 if resp.status_code == 429:
                     raise DeepSeekError("Rate limited by DeepSeek API (429)")

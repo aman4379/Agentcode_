@@ -33,6 +33,43 @@ pip install -r requirements.txt
 export DEEPSEEK_API_KEY=your_api_key_here
 ```
 
+#### Optional configuration (OpenAI-compatible endpoints)
+If your provider exposes an OpenAI-compatible API (like your reference snippet), configure via environment variables:
+
+```bash
+# Endpoint and model
+export DEEPSEEK_BASE_URL="https://genailab.tcs.in"    # /v1 will be auto-appended unless disabled
+export DEEPSEEK_MODEL="azure_ai/genailab-maas-DeepSeek-V3-0324"
+
+# TLS verification (similar to httpx.Client(verify=False))
+export DEEPSEEK_VERIFY_SSL=false
+
+# If your endpoint is NOT OpenAI-compatible, disable auto /v1 append
+export DEEPSEEK_OPENAI_COMPATIBLE=false
+
+# Optional: add custom headers as JSON
+export DEEPSEEK_EXTRA_HEADERS='{"x-tenant":"my-tenant"}'
+
+# Optional timeouts/retries
+export DEEPSEEK_TIMEOUT_SECONDS=60
+export DEEPSEEK_MAX_RETRIES=2
+```
+
+Programmatic overrides are also supported:
+
+```python
+from deepseek_handler import DeepSeekClient
+
+client = DeepSeekClient(
+    api_key="<YOUR_KEY>",
+    base_url="https://genailab.tcs.in",  # auto adds /v1 by default
+    model="azure_ai/genailab-maas-DeepSeek-V3-0324",
+    verify_ssl=False,                     # like httpx.Client(verify=False)
+    # openai_compatible=True,            # set False if your endpoint is not OpenAI-style
+    # default_headers={"x-tenant": "my-tenant"},
+)
+```
+
 ### Run
 ```bash
 streamlit run app.py
